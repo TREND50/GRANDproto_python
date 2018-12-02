@@ -15,10 +15,18 @@ import matplotlib.style
 import matplotlib as mpl
 mpl.style.use('classic')
 
+
+def loopSLCRuns(boardID,startrun,endrun):
+  print "Calling loopRuns(). Will analyse minBias for board {0} between R{1} and R{2}.".format(boardID,startrun,endrun)
+  time.sleep(1)
+  
+  for run in range(int(startrun),int(endrun)+1):
+    loopSLCEvents(boardID,run)
+    
 def loopSLCEvents(boardID,RUNID):
    #datadir = "/home/pastsoft/data/"
    datadir = "/home/martineau/GRAND/GRANDproto35/data/ulastai/"
-   filename = datadir+"S"+RUNID+"_b"+boardID+".data.txt"   # To be modified
+   filename = datadir+"S"+str(RUNID)+"_b"+str(boardID)+".data.txt"   # To be modified
    if os.path.isfile(filename) is False:
      print 'File ',filename,'does not exist. Aborting.'
      return
@@ -29,7 +37,15 @@ def loopSLCEvents(boardID,RUNID):
    	   evts = f.read().split('-----------------')
    nevts=len(evts)-1
    
-   # Initializing arrays
+   resfile = 'SLC_b'+boardID+'.txt'  # Output file
+   reso = open(resfile,'ab')
+   a = np.loadtxt(resfile)
+   try:
+     tfmax =  a[-1,0]   
+   except IndexError:  # When file is empty 
+     tfmax = 0
+
+# Initializing arrays
    date = []
    #np.zeros(shape=(np.size(evts)),dtype = np.int32)
    utcsec = []
@@ -55,8 +71,12 @@ def loopSLCEvents(boardID,RUNID):
 	   # Now build time info... Alternative: mx.DateTime.DateTimeFrom(date[0])
 	   date=evtsplit[1]
            thisDatetime = datetime.datetime.strptime(date, '%a %b %d %H:%M:%S %Y GMT')  # Build DateTime object
-           utcsec.append(time.mktime(thisDatetime.timetuple()))  # Build UTC second
-	   
+           thisUTC = time.mktime(thisDatetime.timetuple())  # Build UTC second
+	   if thisUTC<=tfmax: # Only looking at data more recent than already present in minBias_b[ID].txt
+             print 'Older data than in {0}, skiping it.'.format(resfile)
+             continue		   
+           utcsec.append(thisUTC)
+	     
 	   power = np.zeros(shape=(6,))
 	   for k in range(0,6):
              power[k]=evtsplit[k+3].split(':')[1]
@@ -75,6 +95,8 @@ def loopSLCEvents(boardID,RUNID):
            TrigRate.append(trate)
 	   
 	   maxCoarse.append(evtsplit[20].split(':')[1])
+	   
+	   print "i=",i,", time=",utcsec[-1],", global trig rate=",trate[0]
 
            #j = j+1
 	   
@@ -96,8 +118,7 @@ def loopSLCEvents(boardID,RUNID):
    nev = len(utcsec)
    conc = np.concatenate((utcsec.reshape(nev,1),Temp.reshape(nev,1),VPower.reshape(nev,6),TrigRate.reshape(nev,7),maxCoarse.reshape(nev,1),),axis=1)   # Concatenate results
    #conc = conc.reshape(np.size(utcsec),16) # 
-   filename = 'SLC_b{0}.txt'.format(boardID)
-   np.savetxt(filename,conc,fmt='%3.2f')  # Write to file
+   np.savetxt(reso,conc,fmt='%3.2f')  # Write to file
 
 def displaySLC(boardID):
    home = expanduser("~")
@@ -106,30 +127,46 @@ def displaySLC(boardID):
    print "Calling displaySLC(). Will display SLC result file {0}".format(resfile)
    
    # Load data
-   #open(resfile,'ab')
    a = np.loadtxt(resfile)
    utc = a[:,0]
    temp = a[:,1]
    V = a[:,2:8]
    trig = a[:,8:16]
    mCoarse = a[:,15]
+   sel = np.where(np.diff(utc)>0)  # remove redundant points
+   utc = utc[sel[0]]
+   temp = temp[sel[0]]
+   V = V[sel[0],:]
+   trig = trig[sel[0],:]
+   mCoarse = mCoarse[sel[0]]
    
-   print temp
-   print V
-   print trig[:,0]
-   print mCoarse
-         
+   sd,sm,sy=25,11,2018  # Start day,month,year
+   ed,em,ey=18,11,2019  # End day,month,year
+   startwindow=(datetime.datetime(sy,sm,sd)-datetime.datetime(1970,1,1)).total_seconds()
+   endwindow=(datetime.datetime(ey,em,ed)-datetime.datetime(1970,1,1)).total_seconds()
+   sel = np.where((utc<endwindow) & (utc> startwindow))
+   utc = utc[sel]
+   V = V[sel]
+   temp = temp[sel]
+   trig = trig[sel]
+   mCoarse = mCoarse[sel]
+
    #time = (time-min(time[time>0]))/60
    Triglabel = ['Total','Ch1+','Ch2+','Ch3+','Ch1-','Ch2-','Ch3-']
    Voltlabel = ['Main','-3V','+4V','LNA1','LNA2','LNA3']
    print 'SLC info for board',boardID,' in period:'
    print datetime.datetime.fromtimestamp(min(utc)).strftime('%y/%m/%d - %H:%M:%S UTC'),' to ',datetime.datetime.fromtimestamp(max(utc)).strftime('%y/%m/%d - %H:%M:%S UTC')
+   print np.shape(sel)[1], 'data points for board',boardID
+   datestart = datetime.datetime.fromtimestamp(min(utc)).strftime('%y/%m/%d %H:%M UTC')
+   dateend = datetime.datetime.fromtimestamp(max(utc)).strftime('%y/%m/%d %H:%M UTC')
+   print "Actual period displayed: {0}-{1}".format(datestart,dateend)
 
    # Time ticks
    nticks = 8
    ind = np.linspace(min(utc),max(utc),nticks)
    date = [datetime.datetime.fromtimestamp(ux).strftime('%H:%M') for ux in ind]
-
+   #date = [datetime.datetime.fromtimestamp(ux).strftime('%m/%d') for ux in ind]
+   
    # Temperature plot
    pl.figure(1)
    pl.plot(utc,temp)
@@ -137,7 +174,8 @@ def displaySLC(boardID):
    pl.xlim(min(utc)-1,max(utc)+1)
    pl.grid(True)
    pl.legend(loc='best')
-   pl.xlabel('Time')
+   pl.xlabel('Date [Month/Day]',size='large')
+   #pl.xlabel('Time')
    pl.ylabel('Temperature ($^{\circ}$C)')
    pl.title('Board temperature')
    pl.savefig('temp.png')	
@@ -150,7 +188,8 @@ def displaySLC(boardID):
 	pl.plot(utc,V[:,i],lw=2,label=Voltlabel[i])
 	pl.grid(True)
 	if i>3:
-  	  pl.xlabel('Time')
+  	  pl.xlabel('Date [Month/Day]',size='large')
+	  #pl.xlabel('Time')
 	pl.xticks(np.linspace(min(utc),max(utc),nticks), date)
 	pl.title(Voltlabel[i])
         pl.ylabel('Voltage (V)')
@@ -168,6 +207,7 @@ def displaySLC(boardID):
    pl.grid(True)
    pl.ylabel('Total trig rate (Hz)')
    pl.xlabel('Time')
+   #pl.xlabel('Date [Month/Day]',size='large')
    pl.legend(loc='best')
    pl.savefig('trig.png')	
 
@@ -184,8 +224,6 @@ def twos_comp(val, bits):
 
 
 if __name__ == '__main__':
-#     if len(sys.argv)!=3:
-#       print "Usage: >loopSLCEvents RUNID BOARDID"
-#     else:  
        #loopSLCEvents(sys.argv[1],sys.argv[2])
+       #loopSLCRuns(sys.argv[1],sys.argv[2],sys.argv[3])
        displaySLC(sys.argv[1])

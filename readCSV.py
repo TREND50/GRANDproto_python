@@ -29,7 +29,7 @@ step = 20
 # First list all measuremnts
 allGansu = dict()
 # Aug 31st / zone 2
-folderAug31='/home/martineau/GRAND/GRANDproto300/SiteSurvey/Gansu/Aug31/'
+folderAug31='/home/martineau/GRAND/GRANDproto300/SiteSurvey/Gansu/August/Aug31/'
 allGansu.update({'0':'GP300-200EW-a.CSV'})
 allGansu.update({'1':'GP300-200NS-a.CSV'})
 allGansu.update({'2':'GP300-EW-b.CSV'})
@@ -37,7 +37,7 @@ allGansu.update({'3':'GP300-NS-b.CSV'})
 allGansu.update({'4':'GP300-EW-c.CSV'})
 allGansu.update({'5':'GP300-NS-c.CSV'})
 # Sep 1st / Zone 2
-folderSep01='/home/martineau/GRAND/GRANDproto300/SiteSurvey/Gansu/Sep01/'
+folderSep01='/home/martineau/GRAND/GRANDproto300/SiteSurvey/Gansu/August/Sep01/'
 allGansu.update({'6':'GP300-EW-c2.CSV'})
 allGansu.update({'7':'GP300-NS-c2.CSV'})
 allGansu.update({'8':'GP300-EW-e.CSV'})
@@ -49,7 +49,7 @@ allGansu.update({'13':'GP35-NS-f.CSV'})
 allGansu.update({'14':'GP300-EW-g.CSV'})
 allGansu.update({'15':'GP300-NS-g.CSV'})
 # Sep 2nd / Zone 3
-folderSep02='/home/martineau/GRAND/GRANDproto300/SiteSurvey/Gansu/Sep02/'
+folderSep02='/home/martineau/GRAND/GRANDproto300/SiteSurvey/Gansu/August/Sep02/'
 allGansu.update({'16':'GP300-EW-a.CSV'})
 #allGansu.update({'17':'GP300-EW-a2.CSV'})
 allGansu.update({'18':'GP300-NS-a.CSV'})
@@ -60,7 +60,7 @@ allGansu.update({'22':'GP300H-X-c.CSV'})
 allGansu.update({'23':'GP300H-Y-c.CSV'})
 allGansu.update({'24':'GP300-VERT-c.CSV'})
 # Sep 3rd / Zone 1
-folderSep03='/home/martineau/GRAND/GRANDproto300/SiteSurvey/Gansu/Sep03/'
+folderSep03='/home/martineau/GRAND/GRANDproto300/SiteSurvey/Gansu/August/Sep03/'
 allGansu.update({'25':'GP300-EW-a.CSV'})
 allGansu.update({'26':'GP300-NS-a.CSV'})
 allGansu.update({'27':'GP300-EW-b.CSV'})
@@ -75,7 +75,46 @@ allGansu.update({'35':'GP300-VERT-d.CSV'})
 allGansu.update({'36':'GP35-200EW-a.CSV'})
 allGansu.update({'37':'GP35-200NS-a.CSV'})
 #
-sel = np.arange(0,38)
+# Dec 01 / Zone 2b
+folderDec01='/home/martineau/GRAND/GRANDproto300/SiteSurvey/Gansu/December/Dec01/'
+allGansu.update({'38':'G2h-EW.CSV'})
+allGansu.update({'39':'G2h-NS.CSV'})
+allGansu.update({'40':'G2i-EW.CSV'})
+allGansu.update({'41':'G2i-NS.CSV'})
+
+# Dec 02 / QinHai Zone 1
+folderDec02='/home/martineau/GRAND/GRANDproto300/SiteSurvey/Gansu/December/Dec02/'
+allGansu.update({'42':'Q1-EW.CSV'})
+allGansu.update({'43':'Q1-NS.CSV'})
+
+# Dec 02&03 / QinHai Zone 2
+folderDec03='/home/martineau/GRAND/GRANDproto300/SiteSurvey/Gansu/December/Dec03/'
+allGansu.update({'44':'Q2a-EW.CSV'})
+allGansu.update({'45':'Q2a-NS.CSV'})
+allGansu.update({'46':'Q2b-EW.CSV'})
+allGansu.update({'47':'Q2b-NS.CSV'})
+allGansu.update({'48':'Q2c-EW.CSV'})
+allGansu.update({'49':'Q2c-NS.CSV'})
+allGansu.update({'50':'Q2d-EW.CSV'})  # Bad nut
+allGansu.update({'51':'Q2d-NS.CSV'})  # Bad nut
+allGansu.update({'52':'GP300-EW-e.CSV'})  # Bad nut 
+allGansu.update({'53':'GP300-NS-e.CSV'})  # Bad nut
+allGansu.update({'54':'Q2e-EW.CSV'})  # Good nut
+allGansu.update({'55':'Q2e-NS.CSV'})
+allGansu.update({'56':'Q2f-EW.CSV'})
+allGansu.update({'57':'Q2f-NS.CSV'})
+
+
+#sel = np.arange(38,47)
+sel = [44,46,48,56]  #  Only EW
+sel = [44,46,48,56]  # QinHai Only EW
+#sel = [45,47,49,55,57]  # Only NS
+#sel = [52]
+#labs=["GP35 NS"]
+
+#sel = [4,40]
+#labs=["Best Zone 2, August","Best Zone 2b, December (*:-3dB)"]
+
 #labs=["Zone 1","Zone 2","Zone 3","Zone 1"]
 #sel = [33,4,16]  # Best for each zone
 
@@ -92,48 +131,71 @@ for i in sel:
     folder=folderSep01
   if i>15 and i<25:  
     folder=folderSep02
-  if i>24:
+  if i>24 and i<38:
     folder=folderSep03  
+  if i>37 and i<42:
+    folder=folderDec01
+  if i>41 and i<44:
+    folder=folderDec02
+  if i>43 and i<59:
+    folder=folderDec03
+
   lab=filename[:-4]
   filename=folder+filename
   #print f[]
-  print 'Reading',filename
-  fi = open(filename, 'rb')
-  data = fi.read()
-  fi.close()
-  fo = open('temp.csv', 'wb')
-  fo.write(data.replace('\x00', ''))  # Get rid of <nul> characters
-  fo.close()
-  fo = open('temp.csv', 'rb')  #re-open in read mode
-  reader = csv.reader(fo)
   
-  # Now loop on file
-  ind = 0
-  f = []
-  power = []
-  try:
-    for row in reader:
-      row = np.asarray(row)
-      ind += 1
-      if len(row)>4 and row[3]=='RBW':  # Grabing RBW value from CSV header
-        rbw = float(row[4])
-      if ind>16:  
-  	#print 'Row read successfully!', row[0], row[1]
-  	f.append(float(row[0]))
-  	power.append(float(row[1]))
+  def getData(filename):
+    print 'Reading',filename
+    fi = open(filename, 'rb')
+    data = fi.read()
+    fi.close()
+    fo = open('temp.csv', 'wb')
+    fo.write(data.replace('\x00', ''))  # Get rid of <nul> characters
+    fo.close()
+    fo = open('temp.csv', 'rb')  #re-open in read mode
+    reader = csv.reader(fo)
+  
+    # Now loop on file
+    ind = 0
+    f = []
+    power = []
+    try:
+      for row in reader:
+        row = np.asarray(row)
+        ind += 1
+        if len(row)>4 and row[3]=='RBW':  # Grabing RBW value from CSV header
+          rbw = float(row[4])
+        if ind>16:  
+  	  #print 'Row read successfully!', row[0], row[1]
+  	  f.append(float(row[0]))
+  	  power.append(float(row[1]))
  
-  except csv.Error, e:
-    sys.exit('file %s, line %d: %s' % (filename, reader.line_num, e))
+    except csv.Error, e:
+      sys.exit('file %s, line %d: %s' % (filename, reader.line_num, e))
+    f = np.asarray(f)
+    power = np.asarray(power)
+    psd = power-10*np.log10(rbw)  # As PSD = Power/DeltaF
+    return f,psd
 
-  f = np.asarray(f)
-  power = np.asarray(power)
-  psd = power-10*np.log10(rbw)  # As PSD = Power/DeltaF
-    
+  # Combine EW+NS
+  if 0:
+    f,psdew=getData(filename)
+    filename = allGansu[str(i+1)]
+    filename=folder+filename
+    _,psdns=getData(filename)
+    if i==56:
+      psdns=psdns[2:-1]
+    psd = (psdew+psdns)/2
+    lab = lab[:-3]
+  else:
+    f,psd=getData(filename)
+  
   f = f/1e6
   if i == 0:
     sel = np.where((f>55) & (f<95))
     meanLoadGP = np.mean(psd[sel])
-
+  if i>39:
+    psd = psd-3
   pl.figure(1)
   #pl.subplot(221+i)
   pl.plot(f,psd,'-',lw=2,label=lab)
@@ -145,6 +207,7 @@ for i in sel:
   #pl.ylabel('Power(dBm)')
   pl.legend(loc='best')  
   pl.xlim(0,fmax)
+  pl.xlim(0,250)
   j = j+1
 pl.show()
 #raw_input()

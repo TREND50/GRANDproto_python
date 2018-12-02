@@ -2,7 +2,7 @@ from anaMinBias import displayGalVar
 from anaMinBias import loopRuns
 import pylab as pl
 
-ants = ["06","09","10","11","27","31"]
+ants = ["05","06","09","10","11","18","27","31"]
 pl.ion()
 
 for ant in ants:
