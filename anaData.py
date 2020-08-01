@@ -1,11 +1,11 @@
-# Base script to analyse standard dat
+# Base script to analyse standard data written in txt (yaml) format
 # OMH Aug 29, 2018
 
 import os
 import time
 import sys
 import math
-
+import yaml  # To read data in txt format
 import numpy as np
 import pylab as pl
 from scipy.optimize import curve_fit
@@ -18,16 +18,15 @@ DISPLAY = 0
 print 'DISPLAY = ',DISPLAY 
 pl.ion()
 
-def loopEvents(RUNID,boardID):
+def loopEvents(RUNID,boardID,TYPE):
    #datadir = "/home/pastsoft/data"
-   datadir = "/home/martineau/GRAND/GRANDproto35/data/ulastai/"
-   filename = datadir+"R"+RUNID+"_b"+boardID+".data.txt"
+   datadir = "/home/martineau/GRAND/GRANDproto35/data/"
+   filename = datadir+TYPE+RUNID+".data.yaml"
    if os.path.isfile(filename) is False:
      print 'File ',filename,'does not exist. Aborting.'
      return
 
    datafile = filename.split('/')
-   TYPE = datafile[-1][0]
    if TYPE == 'C':
      nch = 4   # Plot calibrator channel
    else:
@@ -35,155 +34,183 @@ def loopEvents(RUNID,boardID):
    
    # Read data
    print 'Scanning data file',filename
-   with open(filename,"r") as f:
-   	   evts = f.read().split('-----------------')
-   nevts = len(evts)-1
-   print 'Number of events:',nevts
-   time.sleep(1)
+   print "Loading data..."
+   dataf=yaml.load_all(open(filename))
+   print "Done."
    
-   # Initialize arrays
-   date = []
-   board = np.zeros(shape=(np.size(evts)),dtype = np.int32)
-   TS2 = np.zeros(shape=(np.size(evts)))
-   TS1PPS = np.zeros(shape=(np.size(evts)))
-   TS1Trig = np.zeros(shape=(np.size(evts)))
-   SSS = np.zeros(shape=(np.size(evts)),dtype = np.int32)
-   EvtId = np.zeros(shape=(np.size(evts)),dtype = np.int32)
-   TrigPattern = np.zeros(shape=(np.size(evts)))
-   imax = np.zeros(shape=(nevts,nch),dtype=int)
-   Amax = np.zeros(shape=(nevts,nch))
-   mub = np.zeros(shape=(nevts,nch))
-   sigb = np.zeros(shape=(nevts,nch))
    data = list()
    freq=50e6  # Sampling Frequency
    dt=1.0/freq
    tdeb = 0
-   tend = 0
-
+   tend = 0   
+   date = []
+   IP = []
+   TS1Trig = []
+   SSS = []
+   TS2 = []
+   TS1PPS = []
+   EvtId = []
+   TrigPattern = []
+   board = []
+   imax = []
+   Amax = []
+   mub = []
+   sigb = []
+	   
    # Loop on events
    j = 0;  # Index of array filling (because date & data are "append")
-   for i in range(1,nevts+1):  
-   #for i in range(1,1000):  
-   	   if float(i)/100 == int(i/100):
-	   	print 'Event',i,'/',nevts
-   	   evt = evts[i]
-   	   evtsplit = evt.split('\n')
-	   if np.size(evtsplit)>8:   # Event is of normal size
-	           date.append(evtsplit[1])
-		   IP = evtsplit[2][3:]
-		   board[j] = int(IP[-2:]);
-		   		
-   		   TS2[j]=int(evtsplit[3][4:])  # time elapsed since last PPS (125MHz clock <=> 8ns counter)
-   		   tt=int(evtsplit[4][11:])  # phase in 8ns slot fr trigger
-   		   TS1Trig[i] = tt
-		   tpps=int(evtsplit[5][7:]) 
-		   TS1PPS[j]=tpps
-		   SSS[j]=int(evtsplit[6][4:])  # Elapsed seconds since start
-   		   EvtId[j] = int(evtsplit[7][3:])
-   		   TrigPattern[j] = int(evtsplit[8][12:])
-   		   # Data
-   		   raw=evtsplit[9:][:]  #raw data
-   		   raw2 = raw[0].split(" ") # Cut raw data list into samples
-		   raw2 = raw2[0:np.size(raw2)-1]   # Remove last element (empty)
-   		   if TYPE == "P":  # Pattern run, keep data value in binary format
-			draw = [int(a) for a in raw2] 
-		   else:  # Other run types
-  		        hraw2 = [hex(int(a)) for a in raw2]  # Transfer back to hexadecimal
-			draw = [twos_comp(int(a,16), 12) for a in hraw2] #2s complements		   
-                   if TYPE != "P":  # Transfer data to volts 
-		     draw = np.array(draw)*1./2048  # in Volts
-		   
-   		   nsamples = len(draw)/4  # draw corresponds to 4 channels
-   		   offset = int(nsamples/2.0)  # Offset position at center of waveform
-   		   #print nsamples,"samples per channel --> offset = ",offset
-		   thisEvent = np.reshape(draw,(4,nsamples));
-   		   data.append(thisEvent) # Write to data list
-		   #print 'Sampling frequency=',freq,'MHz, time step=',dt,'s'
-		   if DISPLAY:
-		     print 'Event ',j, 'at date',date[j]
-		     t = dt*np.array(range(np.shape(thisEvent)[1]))
- 		     t = t* 1e6  #in mus
- 		     pl.figure(j)
-		     if TYPE == "C":
-   		       pl.subplot(221)
- 		     else:
-		       pl.subplot(311)
- 		     pl.plot(t[3:],thisEvent[0][3:])
- 		     pl.xlim(t[3],max(t))
- 		     pl.xlabel('Time ($\mu$s)')
- 		     if TYPE == "P":
-		       pl.ylabel('LSB')
-		     else:
-		       pl.ylabel('Amplitude (V)')
- 		     pl.grid(True)
-		     if TYPE == "C":
-   		       pl.subplot(222)
- 		     else:
-		       pl.subplot(312)
- 		     pl.xlabel('Time ($\mu$s)')
- 		     pl.xlim(t[3],max(t))
- 		     if TYPE == "0":
-		       pl.ylabel('LSB')
-		     else:
-		       pl.ylabel('Amplitude (V)')
-		     pl.plot(t[3:],thisEvent[1][3:])
- 		     pl.grid(True)
-		     if TYPE == "C":
-   		       pl.subplot(223)
- 		     else:
-		       pl.subplot(313)
- 		     pl.plot(t[3:],thisEvent[2][3:])
-                     pl.xlim(t[3],max(t))
- 		     pl.xlabel('Time ($\mu$s)')
- 		     if TYPE == "P":
-		       pl.ylabel('LSB')
-		     else:
-		       pl.ylabel('Amplitude (V)')
- 		     pl.grid(True)
-		     if TYPE == "C":
- 		       pl.subplot(224)
- 		       pl.plot(t[3:],thisEvent[3][3:])
- 		       pl.xlabel('Time ($\mu$s)')
- 		       pl.ylabel('Amplitude (V)')
+   #try:
+   if 1:
+     for d in dataf:
+       #determine whether it is a data:
+       if d['msg_type']=='DATA':
+           #print d.keys()
+	   print "Event",j,"from ID ",d['source_ip']
+   	   print d['event_count']
+	   IP.append(d['source_ip'])
+	   board.append(int(d['source_ip'][-1])-100)
+   	   TS1Trig.append(d['ts1trigger'])
+	   SSS.append(d['sss'])
+	   TS2.append(d['ts2'])
+	   TS1PPS.append(d['ts1pps'])
+	   EvtId.append(d['event_count'])
+	   TrigPattern.append(d['trig_pattern'])
+	   date.append(d['received_timestamp_str'])
+	   raw=d['data']
+	   #raw2 = raw[0].split(" ") # Cut raw data list into samples
+	   #raw2 = raw2[0:np.size(raw2)-1]   # Remove last element (empty)
+   	   raw2 = raw
+	   if TYPE == "P":  # Pattern run, keep data value in binary format
+	        draw = [int(a) for a in raw2] 
+	   else:  # Other run types
+  	        hraw2 = [hex(int(a)) for a in raw2]  # Transfer back to hexadecimal
+	        draw = [twos_comp(int(a,16), 12) for a in hraw2] #2s complements		   
+           if TYPE != "P":  # Transfer data to volts 
+	     draw = np.array(draw)*1./2048  # in Volts
+	   
+   	   nsamples = len(draw)/4  # draw corresponds to 4 channels
+   	   offset = int(nsamples/2.0)  # Offset position at center of waveform
+   	   #print nsamples,"samples per channel --> offset = ",offset
+	   thisEvent = np.reshape(draw,(4,nsamples));
+   	   data.append(thisEvent) # Write to data list
+	   #print 'Sampling frequency=',freq,'MHz, time step=',dt,'s'
+	   
+	   if DISPLAY:
+	     print 'Event ',j
+	     thisEv = pow(10,(thisEvent+np.min(thisEvent)))
+	     t = dt*np.array(range(np.shape(thisEvent)[1]))
+ 	     t = t* 1e6  #in mus
+ 	     pl.figure(j)
+	     if TYPE == "C":
+   	       pl.subplot(221)
+ 	     else:
+	       pl.subplot(311)
+ 	     #pl.plot(t[3:],thisEvent[0][3:])
+	     pl.plot(t[3:],thisEv[0][3:])
+ 	     pl.xlim(t[3],max(t))
+ 	     pl.xlabel('Time ($\mu$s)')
+ 	     if TYPE == "P":
+	       pl.ylabel('LSB')
+	     else:
+	       pl.ylabel('Amplitude (V)')
+ 	     pl.grid(True)
+	     if TYPE == "C":
+   	       pl.subplot(222)
+ 	     else:
+	       pl.subplot(312)
+ 	     pl.xlabel('Time ($\mu$s)')
+ 	     pl.xlim(t[3],max(t))
+ 	     if TYPE == "0":
+	       pl.ylabel('LSB')
+	     else:
+	       pl.ylabel('Amplitude (V)')
+	     #pl.plot(t[3:],thisEvent[1][3:])
+ 	     pl.plot(t[3:],thisEv[1][3:])
+ 	     pl.grid(True)
+	     if TYPE == "C":
+   	       pl.subplot(223)
+ 	     else:
+	       pl.subplot(313)
+ 	     #pl.plot(t[3:],thisEvent[2][3:])
+             pl.plot(t[3:],thisEv[2][3:])
+             pl.xlim(t[3],max(t))
+ 	     pl.xlabel('Time ($\mu$s)')
+ 	     if TYPE == "P":
+	       pl.ylabel('LSB')
+	     else:
+	       pl.ylabel('Amplitude (V)')
+ 	     pl.grid(True)
+	     if TYPE == "C":
+ 	       pl.subplot(224)
+ 	       pl.plot(t[3:],thisEvent[3][3:])
+ 	       pl.xlabel('Time ($\mu$s)')
+ 	       pl.ylabel('Amplitude (V)')
 
- 		     pl.grid(True)
+ 	     pl.grid(True)
+             pl.suptitle('Board {0} Event {1}'.format(board[j],EvtId[j]))
+	     
+	     if TYPE == "C":  # Plotting calibrator signal in Calibration mode
+ 	       pl.plot(t[3:],thisEvent[3][3:],'s')
+	       # Fit calibration signal with sine wave
+  	       xr = t[3:]  #mus
+ 	       w = 2*np.pi*66.666666  #rad/mus
+	       yr = thisEvent[3][3:]
+	       fitfunc = lambda xr, a, b, c: a*np.sin(w*xr+b)+c   # Create fit function
+	       abeg = float(np.max(yr)-np.min(yr))
+	       p, pcov = curve_fit(fitfunc,xr,yr,p0 = [abeg,0.0,0.0])  #Perform fit
+ 	       print 'Fit results:',p,np.sqrt(np.diag(pcov))
+	       xf=np.linspace(xr[0],xr[-1],10000)  # Display fit result wuith nice thinning
+	       pl.plot(xf,fitfunc(xf,p[0],p[1],p[2]))
+	     
+	     pl.show()
+	     raw_input()
+ 	     pl.close(j)
+	   
+	   # Assemble stat for summary plots
+	   iimax = np.zeros(shape=(1,nch),dtype=int)
+	   iAmax = np.zeros(shape=(1,nch),dtype=float)
+   	   imub = np.zeros(shape=(1,nch))
+  	   isigb = np.zeros(shape=(1,nch))	   
+	   for k in range(nch):
+	     iimax[0,k] = np.argmax(thisEvent[k][3:])+3;  # Skip 1st 3 points because could be left overs from previous events
+	     iAmax[0,k] = thisEvent[k][iimax[0,k]];
+	     imub[0,k] = np.mean(thisEvent[k][1:offset-5])
+	     isigb[0,k] = np.std(thisEvent[k][1:offset-5])	
+	   #print iimax[0]
+	   imax.append(iimax[0])
+	   Amax.append(iAmax[0])
+	   mub.append(imub[0])
+	   sigb.append(isigb[0])
+	   j = j+1
 
- 		     pl.suptitle('Board {0} Event {1}'.format(board[j],EvtId[j]))
-		     
-		     if TYPE == "C":  # Plotting calibrator signal in Calibration mode
- 		       pl.plot(t[3:],thisEvent[3][3:],'s')
-		       # Fit calibration signal with sine wave
-  		       xr = t[3:]  #mus
- 		       w = 2*np.pi*66.666666  #rad/mus
-		       yr = thisEvent[3][3:]
-		       fitfunc = lambda xr, a, b, c: a*np.sin(w*xr+b)+c   # Create fit function
-		       abeg = float(np.max(yr)-np.min(yr))
-		       p, pcov = curve_fit(fitfunc,xr,yr,p0 = [abeg,0.0,0.0])  #Perform fit
- 		       print 'Fit results:',p,np.sqrt(np.diag(pcov))
-		       xf=np.linspace(xr[0],xr[-1],10000)  # Display fit result wuith nice thinning
-		       pl.plot(xf,fitfunc(xf,p[0],p[1],p[2]))
-		     
-		     pl.show()
-		     raw_input()
- 		     pl.close(j)
-		   
-		   # Assemble stat for summary plots
-		   for k in range(nch):
-		     imax[j,k] = np.argmax(thisEvent[k][3:])+3;  # Skip 1st 3 points because could be left overs from previous events
-		     Amax[j,k] = thisEvent[k][imax[j,k]];
-		     mub[j,k] = np.mean(thisEvent[k][1:offset-5])
-		     sigb[j,k] = np.std(thisEvent[k][1:offset-5])                  
-
-		   j = j+1
-   	   else:
-   		   print 'Error! Empty event',i
-
+   #except NameError:
+   #  print "NameError"
+ 
+   #except:
+   #  print "Unknown error while reading data (end of file?) ==> abort reading."
+    
    if TYPE == "P":
      return
    
+   SSS = np.array(SSS)
+   IP = np.array(IP)
+   TS1Trig = np.array(TS1Trig)
+   SSS = np.array(SSS)
+   TS2 = np.array(TS2)
+   TS1PPS = np.array(TS1PPS)
+   EvtId = np.array(EvtId )
+   TrigPattern = np.array(TrigPattern)
+   board = np.array(board)
+   imax = np.array(imax)
+   Amax = np.array(Amax)
+   mub = np.array(mub)
+   sigb = np.array(sigb)
+   board = np.array(board)
+
+   nevts = np.size(SSS)
+   print "Nb events=", nevts
    # Now display summary plots
-   trigtime = np.zeros(shape=(np.size(evts))) 
-   deltat = np.zeros(shape=(np.size(evts)))   #Delta_t to previous event on same antena
+   trigtime = np.zeros(shape=(np.size(SSS))) 
    
    timein = np.where(SSS>0)  
    if np.size(timein) > 0:  # GPS timing info is available
@@ -200,10 +227,7 @@ def loopEvents(RUNID,boardID):
    j = 0
    #for id in boards:  # Loop on all boards in run
    for id in [int(boardID)]:  # Loop on all boards in run
-     print id
-     print board
      sel = np.where(board == id)
-     print sel
      date_end = date[sel[0][-1]]
      print 'Run stop:',date_end,'for board',id,' (',np.size(sel),'measurements)'
      if np.size(timein) > 0:
@@ -216,7 +240,6 @@ def loopEvents(RUNID,boardID):
      # Build trig time
      trigtime[sel] = SSS[sel]+(TS2[sel]*4+TS1PPS[sel]-TS1Trig[sel])*2e-9*cor  #second. 
      
-     deltat[sel] = np.diff(trigtime[sel])
      # Compute trig rate
      for i in range(dur):
 	ts = tdeb+i
@@ -308,26 +331,7 @@ def loopEvents(RUNID,boardID):
      pl.plot(trigtime)
      pl.xlabel('Evt ID')
      pl.ylabel('Trig time [s]')
-     
-     if 0:
-       # Now check trig rate vs exected
-       consigne = 1; #Expected trig period [s]
-       deltat = (deltat-consigne)*1e9;  #  [ns]
-       seldeltat = np.where(abs(deltat)<2000)  #1mus difference max
-       print 'Nevents with ~',consigne,'s time diff =',np.size(seldeltat)
-       print 'Time diff offset to',consigne,'s =',np.mean(deltat[seldeltat]),'ns, std dev=',np.std(deltat[seldeltat]),'ns.'
-       pl.figure(19)
-       pl.subplot(211)
-       pl.plot(trigtime[seldeltat],deltat[seldeltat])
-       pl.xlabel('Time [s]')
-       pl.ylabel('$\Delta$t [ns]')
-       pl.grid(True)
-       pl.xlim(min(trigtime[seldeltat]),max(trigtime[seldeltat])+1)
-       pl.subplot(212)
-       pl.hist(deltat[seldeltat],100)
-       pl.xlabel('$\Delta$t [ns]')
-       pl.show()
-  
+       
   
 def get_1stone(val):
     if val == '0x1':
@@ -359,7 +363,7 @@ def twos_comp(val, bits):
    
 
 if __name__ == '__main__':
-     if len(sys.argv)!=3:
-       print "Usage: >loopEvents RUNID BOARDID"
+     if len(sys.argv)!=4:
+       print "Usage: >loopEvents RUNID boardID TYPE"
      else:  
-       loopEvents(sys.argv[1],sys.argv[2])
+       loopEvents(sys.argv[1],sys.argv[2],sys.argv[3])

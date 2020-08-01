@@ -13,11 +13,12 @@ import numpy as np
 import pylab as pl
 import matplotlib.style
 import matplotlib as mpl
+import yaml
 mpl.style.use('classic')
 
 
 def loopSLCRuns(boardID,startrun,endrun):
-  print "Calling loopRuns(). Will analyse minBias for board {0} between R{1} and R{2}.".format(boardID,startrun,endrun)
+  print("Calling loopRuns(). Will analyse minBias for board {0} between R{1} and R{2}.".format(boardID,startrun,endrun))
   time.sleep(1)
   
   for run in range(int(startrun),int(endrun)+1):
@@ -26,105 +27,85 @@ def loopSLCRuns(boardID,startrun,endrun):
 def loopSLCEvents(boardID,RUNID):
    #datadir = "/home/pastsoft/data/"
    datadir = "/home/martineau/GRAND/GRANDproto35/data/ulastai/"
-   filename = datadir+"S"+str(RUNID)+"_b"+str(boardID)+".data.txt"   # To be modified
+   filename = datadir+"S"+str(RUNID)+".yaml"   # To be modified
    if os.path.isfile(filename) is False:
-     print 'File ',filename,'does not exist. Aborting.'
+     print('File ',filename,'does not exist. Aborting.')
      return
 
-   # Load data file
-   print 'Scanning slow control datafile',filename
-   with open(filename,"r") as f:
-   	   evts = f.read().split('-----------------')
-   nevts=len(evts)-1
-   
    resfile = 'SLC_b'+boardID+'.txt'  # Output file
    reso = open(resfile,'ab')
+   a = np.loadtxt(resfile)
    a = np.loadtxt(resfile)
    try:
      tfmax =  a[-1,0]   
    except IndexError:  # When file is empty 
      tfmax = 0
 
-# Initializing arrays
-   date = []
-   #np.zeros(shape=(np.size(evts)),dtype = np.int32)
-   utcsec = []
+   # Read data
+   print('Scanning data file',filename)
+   print("Loading data...")
+   dataf=yaml.load_all(open(filename))
+   print("Done.")
+   
+   IP = []
    VPower = []
+   Th = []
    Temp = []
    maxCoarse = []
    TrigRate = []
-   Th = np.zeros(shape=(nevts,3,2))
-   
-   ## Loop on all events; filing in arrays
-   #j = 0
-   for i in range(nevts):
-      evt = evts[i]
-      if len(evt)>60:  # Skip ACK words (size=59)
-           evtsplit = evt.split('\n')
-	   IP = evtsplit[2][3:]
-	   board = int(IP[-2:]);
-	   if board != int(boardID):
-	     #print 'This is board {0}, skiping it (analysing board {1} only)'.format(board,boardID)
-	     continue
-		   
-	   # Now reducing data
-	   # Now build time info... Alternative: mx.DateTime.DateTimeFrom(date[0])
-	   date=evtsplit[1]
-           thisDatetime = datetime.datetime.strptime(date, '%a %b %d %H:%M:%S %Y GMT')  # Build DateTime object
-           thisUTC = time.mktime(thisDatetime.timetuple())  # Build UTC second
-	   if thisUTC<=tfmax: # Only looking at data more recent than already present in minBias_b[ID].txt
-             print 'Older data than in {0}, skiping it.'.format(resfile)
-             continue		   
-           utcsec.append(thisUTC)
-	     
-	   power = np.zeros(shape=(6,))
-	   for k in range(0,6):
-             power[k]=evtsplit[k+3].split(':')[1]
-           VPower.append(power)
-	   
-	   #for k in range(0,3):
-           #  thsplit = evtsplit[k+9].split(':')
-           #  Th[j,k,0] = thsplit[1].split(' ')[0]
-           #  Th[j,k,1] = thsplit[1].split(' ')[1]
+   utcsec = []
+   time_str = []
+   for d in dataf:
+     #determine whether it is a data:
+     if d['msg_type']=='SLC':
+       #print(d.keys())
+       # Select data from this antenna only      
+       uid=(d['source_ip'])[3]-100
+       if uid != int(boardID):
+	 #print 'This is board {0}, skiping it (analysing board {1} only)'.format(board,boardID)
+         continue
+       # Select unprocessed data only 
+       thisUTC = d['received_timestamp'][0]
+       if thisUTC<=tfmax: # Only looking at data more recent than already present in minBias_b[ID].txt
+         print('Older data than in {0}, skiping it.'.format(resfile))
+         continue	             
+       if len(utcsec)>0 and thisUTC-utcsec[-1]<1:
+         #print('Echoed data for unit {0}, skiping it.'.format(uid))
+         continue	             
 
-           Temp.append(evtsplit[12].split(':')[1])
-
-           trate = np.zeros(shape=(7,))
-	   for k in range(0,7):  # 7 columns: overall rate + 6 individual channels
-             trate[k] = evtsplit[13+k].split(':')[1]
-           TrigRate.append(trate)
-	   
-	   maxCoarse.append(evtsplit[20].split(':')[1])
-	   
-	   print "i=",i,", time=",utcsec[-1],", global trig rate=",trate[0]
-
-           #j = j+1
-	   
-	   
-   #nevts = j
-   #date = np.array(date)
-   # Build proper temperature info from raw temperature data... Already done in DAQ!!!
-   #Temp = np.asarray(Temp)
-   #hraw = [hex(int(a)) for a in Temp]  # Transfer back to hexadecimal
-   #braw = [bin(int(a)) for a in Temp]
-   #draw = [twos_comp(int(a,16), 13) for a in hraw] #2s complements
-   
+       utcsec.append(thisUTC)
+       IP.append(d['source_ip'])
+       power = [d['vpower1'], d['vpower2'],d['vpower3'], d['vpower4'],d['vpower5'], d['vpower6']]
+       VPower.append(power)
+       th = [d['th1m'], d['th1p'],d['th2m'], d['th2p'],d['th3m'], d['th3p']]
+       Th.append(th)
+       Temp.append(d['temp'])
+       trate = [d['total_trig_rate'],d['ch1p_trig_rate'],d['ch1m_trig_rate'],d['ch2p_trig_rate'],d['ch2m_trig_rate'],d['ch3p_trig_rate'],d['ch3m_trig_rate']]
+       TrigRate.append(trate)
+       maxCoarse.append(d['max_coarse'])
+       time_str.append(d['received_timestamp_str'])
+       print(d['received_timestamp_str'])
+             
+	      
    # Write to file
+   IP = np.asarray(IP,dtype=int)
    utcsec = np.asarray(utcsec,dtype=int)
    TrigRate = np.asarray(TrigRate,dtype=float)
+   Th = np.asarray(Th,dtype=float)
    Temp = np.asarray(Temp,dtype=float)
    VPower = np.asarray(VPower,dtype=float)
    maxCoarse = np.asarray(maxCoarse,dtype=int)
    nev = len(utcsec)
    conc = np.concatenate((utcsec.reshape(nev,1),Temp.reshape(nev,1),VPower.reshape(nev,6),TrigRate.reshape(nev,7),maxCoarse.reshape(nev,1),),axis=1)   # Concatenate results
-   #conc = conc.reshape(np.size(utcsec),16) # 
+   conc = conc.reshape(np.size(utcsec),16) # 
    np.savetxt(reso,conc,fmt='%3.2f')  # Write to file
 
 def displaySLC(boardID):
    home = expanduser("~")
-   resdir = home+"/GRAND/GRANDproto35/data/ulastai/"
+   #resdir = home+"/GRAND/GRANDproto35/data/ulastai/"
+   resdir = "./"
    resfile = resdir+"SLC_b"+str(boardID)+".txt"
-   print "Calling displaySLC(). Will display SLC result file {0}".format(resfile)
+   print("Calling displaySLC(). Will display SLC result file {0}".format(resfile))
    
    # Load data
    a = np.loadtxt(resfile)
@@ -154,12 +135,12 @@ def displaySLC(boardID):
    #time = (time-min(time[time>0]))/60
    Triglabel = ['Total','Ch1+','Ch2+','Ch3+','Ch1-','Ch2-','Ch3-']
    Voltlabel = ['Main','-3V','+4V','LNA1','LNA2','LNA3']
-   print 'SLC info for board',boardID,' in period:'
-   print datetime.datetime.fromtimestamp(min(utc)).strftime('%y/%m/%d - %H:%M:%S UTC'),' to ',datetime.datetime.fromtimestamp(max(utc)).strftime('%y/%m/%d - %H:%M:%S UTC')
-   print np.shape(sel)[1], 'data points for board',boardID
+   print('SLC info for board',boardID,' in period:')
+   print(datetime.datetime.fromtimestamp(min(utc)).strftime('%y/%m/%d - %H:%M:%S UTC'),' to ',datetime.datetime.fromtimestamp(max(utc)).strftime('%y/%m/%d - %H:%M:%S UTC'))
+   print(np.shape(sel)[1], 'data points for board',boardID)
    datestart = datetime.datetime.fromtimestamp(min(utc)).strftime('%y/%m/%d %H:%M UTC')
    dateend = datetime.datetime.fromtimestamp(max(utc)).strftime('%y/%m/%d %H:%M UTC')
-   print "Actual period displayed: {0}-{1}".format(datestart,dateend)
+   print("Actual period displayed: {0}-{1}".format(datestart,dateend))
 
    # Time ticks
    nticks = 8
@@ -183,17 +164,17 @@ def displaySLC(boardID):
    # Voltage plot
    pl.figure(2)
    for i in range(np.shape(V)[1]):
-        sub=321+i
-   	pl.subplot(sub)
-	pl.plot(utc,V[:,i],lw=2,label=Voltlabel[i])
-	pl.grid(True)
-	if i>3:
-  	  pl.xlabel('Date [Month/Day]',size='large')
-	  #pl.xlabel('Time')
-	pl.xticks(np.linspace(min(utc),max(utc),nticks), date)
-	pl.title(Voltlabel[i])
-        pl.ylabel('Voltage (V)')
-   pl.savefig('voltage.png')	
+     sub=321+i
+     pl.subplot(sub)
+     pl.plot(utc,V[:,i],lw=2,label=Voltlabel[i])
+     pl.grid(True)
+     if i>3:
+       pl.xlabel('Date [Month/Day]',size='large')
+       #pl.xlabel('Time')
+     pl.xticks(np.linspace(min(utc),max(utc),nticks), date)
+     pl.title(Voltlabel[i])
+     pl.ylabel('Voltage (V)')
+     pl.savefig('voltage.png')	
 
    pl.figure(3)  #Trig Rate
    # Plotting total trig rate only. 
@@ -224,6 +205,6 @@ def twos_comp(val, bits):
 
 
 if __name__ == '__main__':
-       #loopSLCEvents(sys.argv[1],sys.argv[2])
+       loopSLCEvents(sys.argv[1],sys.argv[2])
        #loopSLCRuns(sys.argv[1],sys.argv[2],sys.argv[3])
        displaySLC(sys.argv[1])

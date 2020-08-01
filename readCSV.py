@@ -10,8 +10,8 @@ sys.path.append("/home/martineau/GRAND/soft/TREND_python/")
 from readPSD import readPSDData
 pl.style.use("/home/martineau/GRAND/soft/neutrinos/retro-ccin2p3/deps/mplstyle-l3/style/l3.mplstyle")
 pl.ion()
-fmax = 500
-step = 20
+fmax = 200
+step = 10
 # Balikun -- Obsolete   
 #folder='/home/martineau/GRAND/GRANDproto300/SiteSurvey/Bailikun/Apr2018/'
 #files=['LOAD.CSV','TEST1.CSV','TEST2.CSV']  # Day1
@@ -30,24 +30,24 @@ step = 20
 allGansu = dict()
 # Aug 31st / zone 2
 folderAug31='/home/martineau/GRAND/GRANDproto300/SiteSurvey/Gansu/August/Aug31/'
-allGansu.update({'0':'GP300-200EW-a.CSV'})
-allGansu.update({'1':'GP300-200NS-a.CSV'})
-allGansu.update({'2':'GP300-EW-b.CSV'})
-allGansu.update({'3':'GP300-NS-b.CSV'})
-allGansu.update({'4':'GP300-EW-c.CSV'})
-allGansu.update({'5':'GP300-NS-c.CSV'})
+allGansu.update({'0':'G2a-EW-RBW10k.CSV'})
+allGansu.update({'1':'G2a-NS.CSV'})
+allGansu.update({'2':'G2b-EW.CSV'})
+allGansu.update({'3':'G2b-NS.CSV'})
+allGansu.update({'4':'G2c-EW-Aug.CSV'})
+allGansu.update({'5':'G2c-NS-Aug.CSV'})
 # Sep 1st / Zone 2
 folderSep01='/home/martineau/GRAND/GRANDproto300/SiteSurvey/Gansu/August/Sep01/'
-allGansu.update({'6':'GP300-EW-c2.CSV'})
-allGansu.update({'7':'GP300-NS-c2.CSV'})
-allGansu.update({'8':'GP300-EW-e.CSV'})
-allGansu.update({'9':'GP300-NS-e.CSV'})
-allGansu.update({'10':'GP300-EW-f.CSV'})
-allGansu.update({'11':'GP300-NS-f.CSV'})
-allGansu.update({'12':'GP35-EW-f.CSV'})
-allGansu.update({'13':'GP35-NS-f.CSV'})
-allGansu.update({'14':'GP300-EW-g.CSV'})
-allGansu.update({'15':'GP300-NS-g.CSV'})
+allGansu.update({'6':'G2c-EW-Sep.CSV'})
+allGansu.update({'7':'G2c-NS-Sep.CSV'})
+allGansu.update({'8':'G2e-EW.CSV'})
+allGansu.update({'9':'G2e-NS.CSV'})
+allGansu.update({'10':'G2f-EW.CSV'})
+allGansu.update({'11':'G2f-NS.CSV'})
+allGansu.update({'12':'G2f-EW-GP35.CSV'})
+allGansu.update({'13':'G2f-NS-GP35.CSV'})
+allGansu.update({'14':'G2g-EW.CSV'})
+allGansu.update({'15':'G2f-NS.CSV'})
 # Sep 2nd / Zone 3
 folderSep02='/home/martineau/GRAND/GRANDproto300/SiteSurvey/Gansu/August/Sep02/'
 allGansu.update({'16':'GP300-EW-a.CSV'})
@@ -97,26 +97,80 @@ allGansu.update({'48':'Q2c-EW.CSV'})
 allGansu.update({'49':'Q2c-NS.CSV'})
 allGansu.update({'50':'Q2d-EW.CSV'})  # Bad nut
 allGansu.update({'51':'Q2d-NS.CSV'})  # Bad nut
-allGansu.update({'52':'GP300-EW-e.CSV'})  # Bad nut 
-allGansu.update({'53':'GP300-NS-e.CSV'})  # Bad nut
+allGansu.update({'52':'Q2e-EW-o.CSV'})  # Bad nut 
+allGansu.update({'53':'Q2e-NS-o.CSV'})  # Bad nut
 allGansu.update({'54':'Q2e-EW.CSV'})  # Good nut
 allGansu.update({'55':'Q2e-NS.CSV'})
 allGansu.update({'56':'Q2f-EW.CSV'})
 allGansu.update({'57':'Q2f-NS.CSV'})
 
+# Dec04 / Gansu Zone 2
+folderDec04='/home/martineau/GRAND/GRANDproto300/SiteSurvey/Gansu/December/Dec04/'
+allGansu.update({'58':'G2i-EW.CSV'})
+allGansu.update({'59':'G2i-NS.CSV'})
+allGansu.update({'60':'G2i-EW-nut2.CSV'}) # Nut from GP35
+allGansu.update({'61':'G2i-NS-nut2.CSV'})
+allGansu.update({'62':'G2i-EW-RBW30k.CSV'})  
+allGansu.update({'63':'G2i-EW-GP35.CSV'})  # GP35 antenna (and nut 2)
+allGansu.update({'64':'G2i-EW-RBW30k-GP35.CSV'})
+allGansu.update({'65':'G2j-EW.CSV'})
+allGansu.update({'66':'G2j-NS.CSV'})
+allGansu.update({'67':'G2k-EW.CSV'})
+allGansu.update({'68':'G2k-NS.CSV'})
+allGansu.update({'69':'G2c-EW-Dec.CSV'})
+allGansu.update({'70':'G2c-NS-Dec.CSV'})
+allGansu.update({'71':'G2c-NS-RBW10k-Dec.CSV'})
 
-#sel = np.arange(38,47)
-sel = [44,46,48,56]  #  Only EW
-sel = [44,46,48,56]  # QinHai Only EW
-#sel = [45,47,49,55,57]  # Only NS
-#sel = [52]
-#labs=["GP35 NS"]
+#sel = [25,27,30]  #  All Gansu Zone2c EW
+#lab = [4050,4051,4052]
 
-#sel = [4,40]
-#labs=["Best Zone 2, August","Best Zone 2b, December (*:-3dB)"]
+#sel = [4,69]  #  Gansu Zone2c EW
+#lab = ["4032EW","6033EW"]
 
-#labs=["Zone 1","Zone 2","Zone 3","Zone 1"]
+#sel = [5,70]  #  All Gansu Zone2c NS
+#lab = ["4032NS","6033NS"]
+
+#sel = [5,7,70]  #  All Gansu Zone2c NS
+#sel = [62,64]  #  GP35&GP300
+#sel = [58,60]  #  Different nuts
+
+#sel = [4,40,41,63]  #  Gansu Zone 2i Dec EW
+#lab=["4032EW","6002EW","6030EW","6030EWGP35"]
+
+#sel = [5,58,59]  #  Gansu Zone 2i Dec NS
+#lab=["4032NS","6002NS","6030NS"]
+
+sel = [4,38,58,65,67]
+lab=["4032EW","6001EW","6030EW","6031EW","6032EW"]
+
+#sel = [4,59,66,68]  #  All Gansu Zone 2 Dec NS
+#lab=["4032NS","6030NS","6031NS","6032NS"]
+
+#sel = [59,70]  #  All Gansu Zone 2 Dec NS
+
+#sel = [69,46,48,54,56]  # All QinHai OK  EW
+#lab = []
+sel = [4,42,44]  # QinHai Ugly EW
+#lab = [4032,6010,6011]
+#sel = [4,54,56]  # QinHai Bad EW
+#lab = [4032,6023,6024]
+#sel = [4,46,48,50]  # QinHai Good EW
+#lab = [4032,6020,6021,6022]
+sel = [4,46,48,50]  # QinHai Good EW
+lab = [4032,6020,6021,6022]
+sel = [46,48,50]  # QinHai Good EW
+lab = [6020,6021,6022]
+sel = [46]  # QinHai Good EW
+
+
+#sel = [45,47,49,55,57]  # All QinHai NS
+#sel = [47,49]  # All QinHai NS
+
+
 #sel = [33,4,16]  # Best for each zone
+#labs=["Zone 1","Zone 2","Zone 3","Zone 1"]
+
+#sel = [71]
 
 j = 0
 for i in sel:
@@ -137,8 +191,10 @@ for i in sel:
     folder=folderDec01
   if i>41 and i<44:
     folder=folderDec02
-  if i>43 and i<59:
+  if i>43 and i<58:
     folder=folderDec03
+  if i>57 and i<100:
+    folder=folderDec04
 
   lab=filename[:-4]
   filename=folder+filename
@@ -173,8 +229,9 @@ for i in sel:
     except csv.Error, e:
       sys.exit('file %s, line %d: %s' % (filename, reader.line_num, e))
     f = np.asarray(f)
+
     power = np.asarray(power)
-    psd = power-10*np.log10(rbw)  # As PSD = Power/DeltaF
+    psd = power-10*np.log10(rbw)  # As PSD = Power/DeltaF and PSDdB=10log10(PSD/1mW)
     return f,psd
 
   # Combine EW+NS
@@ -196,10 +253,15 @@ for i in sel:
     meanLoadGP = np.mean(psd[sel])
   if i>39:
     psd = psd-3
+  
+  #psd = pow(10,psd/10)  
   pl.figure(1)
   #pl.subplot(221+i)
-  pl.plot(f,psd,'-',lw=2,label=lab)
-  #pl.plot(f,psd,'-',lw=2,label=labs[j])
+  #pl.plot(f,psd,'-',lw=2,label=lab)
+  if i == 4 or i == 5:
+    pl.plot(f,psd,'--',lw=1,label=lab)
+  else:
+    pl.plot(f,psd,'-',lw=2,label=lab)
   pl.xticks(np.arange(0, fmax+step,step))
   pl.grid(True)
   pl.xlabel('Frequency (MHz)')
@@ -207,7 +269,7 @@ for i in sel:
   #pl.ylabel('Power(dBm)')
   pl.legend(loc='best')  
   pl.xlim(0,fmax)
-  pl.xlim(0,250)
+  pl.xlim(0,200)
   j = j+1
 pl.show()
 #raw_input()

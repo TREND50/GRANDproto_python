@@ -10,7 +10,7 @@ from scipy.optimize import curve_fit
 
 def loopEvents(RUNID,TYPE,folder,BOARDID):
    pl.ion()
-   DISPLAY = 1
+   DISPLAY = 0
    if int(TYPE)<2:
      nch = 4   #Nb of channels
    else:
@@ -42,24 +42,26 @@ def loopEvents(RUNID,TYPE,folder,BOARDID):
 
    nevts = len(evts)-1
    print 'Number of events:',nevts
+   nevts = int(1000)
    time.sleep(1)
    date = []
-   board = np.zeros(shape=(np.size(evts)),dtype = np.int32)
-   TS2 = np.zeros(shape=(np.size(evts)))
-   TS1PPS = np.zeros(shape=(np.size(evts)))
-   TS1Trig = np.zeros(shape=(np.size(evts)))
-   SSS = np.zeros(shape=(np.size(evts)),dtype = np.int32)
-   EvtId = np.zeros(shape=(np.size(evts)),dtype = np.int32)
-   TrigPattern = np.zeros(shape=(np.size(evts)))
-   imax = np.zeros(shape=(nevts,nch),dtype=int)
-   Amax = np.zeros(shape=(nevts,nch))
-   mub = np.zeros(shape=(nevts,nch))
-   sigb = np.zeros(shape=(nevts,nch))
+   print("size=",np.size(evts))
+   board = np.zeros(shape=(nevts+1,1),dtype = np.int32)
+   TS2 = np.zeros(shape=(nevts+1,1))
+   TS1PPS = np.zeros(shape=(nevts+1,1))
+   TS1Trig = np.zeros(shape=(nevts+1,1))
+   SSS = np.zeros(shape=(nevts+1,1),dtype = np.int32)
+   EvtId = np.zeros(shape=(nevts+1,1),dtype = np.int32)
+   TrigPattern = np.zeros(shape=(nevts+1,1))
+   imax = np.zeros(shape=(nevts+1,nch),dtype=int)
+   Amax = np.zeros(shape=(nevts+1,nch))
+   mub = np.zeros(shape=(nevts+1,nch))
+   sigb = np.zeros(shape=(nevts+1,nch))
    
    data = list()
 
    j = 0;  # Index of array filling (because date & data are "append")
-   for i in range(1,nevts+1):  
+   for i in range(1,nevts):  
    	   if float(i)/100 == int(i/100):
 	   	print 'Event',i,'/',nevts
    	   evt = evts[i]
@@ -94,13 +96,13 @@ def loopEvents(RUNID,TYPE,folder,BOARDID):
                    draw = np.array(draw)*1./2048  # in Volts
 		   
    		   nsamples = len(draw)/4  # Separate data to each channel
-   		   offset = nsamples/2.0
-   		   print nsamples,"samples per channel --> offset = ",offset
+   		   offset = int(nsamples/2.0)
+   		   #print nsamples,"samples per channel --> offset = ",offset
 		   thisEvent = np.reshape(draw,(4,nsamples));
    		   data.append(thisEvent) # Write to data list
 		   freq=50e6
 		   dt=1.0/freq
-		   print 'Sampling frequency=',freq,'MHz, time step=',dt,'s'
+		   #print 'Sampling frequency=',freq,'MHz, time step=',dt,'s'
 		   if DISPLAY:
 		     print 'Event ',j, 'at date',date[j]
 		     t = dt*np.array(range(np.shape(thisEvent)[1]))
@@ -167,7 +169,6 @@ def loopEvents(RUNID,TYPE,folder,BOARDID):
 		   for k in range(nch):
 		     imax[j,k] = np.argmax(thisEvent[k][3:])+3;  # Skip 1st 3 points because could be left overs from previous events
 		     #print k,np.argmax(thisEvent[k][3:]),thisEvent[k][imax[j,k]];
-		     #print thisEvent[k][:]
 		     #raw_input()
 		     Amax[j,k] = thisEvent[k][imax[j,k]];
 		     mub[j,k] = np.mean(thisEvent[k][1:offset-5])
@@ -191,7 +192,7 @@ def loopEvents(RUNID,TYPE,folder,BOARDID):
    else:
      tdeb = 0
      tend = 0
-   dur = tend-tdeb+1 # Run duration [seconds]
+   dur = int(tend-tdeb+1) # Run duration [seconds]
    t = range(dur)
    DataRate = np.zeros(shape=(dur,2))
    TrigRate = np.zeros(shape=(dur,2))
@@ -211,9 +212,11 @@ def loopEvents(RUNID,TYPE,folder,BOARDID):
        cor=1.0
      print 'Correction factor for 125MHz clock for board',id,':',cor
      # Build trig time
+     print(np.size(sel),np.size(trigtime))
+     
      trigtime[sel] = SSS[sel]+(TS2[sel]*4+TS1PPS[sel]-TS1Trig[sel])*2e-9*cor  #second. 
      
-     deltat[sel] = np.diff(trigtime[sel])
+     deltat[sel[1:-1]] = np.diff(trigtime[sel])
      # Compute trig rate/home/lpnhe/GRANDproto/tests/board03/171026_1400
      for i in range(dur):
 	ts = tdeb+i
